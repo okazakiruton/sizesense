@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>だいたいこんぐらい ― サイズ感クイズ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F2942;
+    --bg-deep: #0A1F33;
+    --grid: rgba(255,255,255,0.055);
+    --grid-strong: rgba(255,255,255,0.09);
+    --accent: #FF6B35;
+    --accent-dim: rgba(255,107,53,0.25);
+    --cyan: #7FDBFF;
+    --cyan-dim: rgba(127,219,255,0.2);
+    --ink: #F3F6FA;
+    --muted: #7E97AE;
+    --panel: rgba(255,255,255,0.035);
+    --panel-border: rgba(255,255,255,0.1);
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{ margin:0; padding:0; overscroll-behavior:none; }
+  body{
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+      radial-gradient(ellipse at 30% 0%, #163a5c 0%, var(--bg) 55%, var(--bg-deep) 100%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px 16px;
+  }
+  .stage{ width:100%; max-width: 520px; position:relative; }
+
+  .crop{ position:fixed; width:22px; height:22px; pointer-events:none; opacity:.5; z-index:0; }
+  .crop::before, .crop::after{ content:""; position:absolute; background:var(--cyan); }
+  .crop::before{ width:100%; height:1px; top:50%; }
+  .crop::after{ width:1px; height:100%; left:50%; }
+  .crop.tl{ top:18px; left:18px; } .crop.tr{ top:18px; right:18px; }
+  .crop.bl{ bottom:18px; left:18px; } .crop.br{ bottom:18px; right:18px; }
+
+  .card{
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 4px;
+    padding: 30px 26px; backdrop-filter: blur(6px); position: relative;
+  }
+  .eyebrow{
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em; color: var(--cyan);
+    text-transform: uppercase; margin: 0 0 10px; display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{ content:"◆"; font-size:8px; }
+
+  h1{ font-size: 28px; font-weight: 700; margin: 0 0 12px; letter-spacing: -0.01em; line-height:1.3; }
+  .lede{ color: var(--muted); font-size: 14px; line-height:1.75; margin: 0 0 22px; }
+  .note{
+    font-size:12.5px; color:var(--muted); line-height:1.7; background:rgba(127,219,255,0.06);
+    border:1px solid rgba(127,219,255,0.18); border-radius:3px; padding:12px 14px; margin: 0 0 22px;
+  }
+  .note b{ color: var(--cyan); font-weight:600; }
+
+  .btn{
+    font-family: var(--font-display); font-weight: 600; font-size: 15px;
+    border: 1px solid var(--accent); background: var(--accent); color: #0A1F33;
+    padding: 13px 24px; border-radius: 3px; cursor: pointer; letter-spacing: 0.01em;
+    transition: transform .12s ease, box-shadow .12s ease; width: 100%;
+  }
+  .btn:hover{ transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,107,53,0.25); }
+  .btn.ghost{ background: transparent; color: var(--ink); border: 1px solid var(--panel-border); }
+  .btn.ghost:hover{ border-color: var(--cyan); box-shadow: 0 6px 20px rgba(127,219,255,0.12); }
+  .btn.small{ font-size:12.5px; padding:9px 14px; width:auto; }
+  .btn.xshare{
+    background:#000; border-color:#222; color:#fff; margin-top:6px;
+    display:flex; align-items:center; justify-content:center; gap:8px; letter-spacing:0.02em;
+  }
+  .btn.xshare:hover{ box-shadow: 0 6px 20px rgba(0,0,0,0.4); border-color:#444; }
+  .btn-row{ display:flex; gap:10px; margin-top:20px; }
+
+  .spec-list{ list-style:none; padding:0; margin: 0 0 24px; display:grid; gap:10px; }
+  .spec-list li{ display:flex; align-items:baseline; gap:10px; font-size:13.5px; color:var(--muted); font-family: var(--font-mono); }
+  .spec-list b{ color: var(--ink); font-weight:500; }
+  .spec-num{ color: var(--cyan); }
+
+  .top-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .round-tag{ font-family: var(--font-mono); font-size:12px; color:var(--cyan); letter-spacing:.1em; }
+  .score-tag{ font-family: var(--font-mono); font-size:12px; color:var(--muted); }
+  .score-tag b{ color:var(--accent); }
+
+  .object-zone{ text-align:center; margin-bottom: 8px; }
+  .object-name{ font-size: 19px; font-weight:600; margin: 0 0 2px; }
+  .object-q{ font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+  /* ---- calibration ---- */
+  .calib-stage{
+    position:relative; height: 380px; display:flex; align-items:flex-start; justify-content:center;
+    margin: 6px 0 8px; touch-action:none; padding-top: 6px;
+  }
+  .calib-rect{
+    position:relative; border: 2px solid var(--cyan); border-radius: 6px;
+    background: rgba(127,219,255,0.08);
+  }
+  .calib-rect::before{
+    content:"CARD"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(90deg);
+    font-family: var(--font-mono); font-size:10px; letter-spacing:.14em; color: var(--cyan); opacity:.55;
+  }
+  .calib-handle{
+    position:absolute; left:50%; width: 34px; height: 34px; margin-top:-17px; margin-left:-17px;
+    border-radius:50%; background: var(--cyan); box-shadow: 0 0 0 6px rgba(127,219,255,0.18), 0 4px 14px rgba(0,0,0,0.35);
+    cursor: ns-resize; touch-action:none; display:flex; align-items:center; justify-content:center;
+  }
+  .calib-handle::after{ content:"↕"; font-size:15px; color:#0A1F33; font-weight:700; }
+  .calib-readout{ text-align:center; font-family:var(--font-mono); font-size:12px; color:var(--muted); margin: 4px 0 4px; }
+
+  /* ---- guessing circle ---- */
+  .circle-stage{
+    position:relative; height: 340px; display:flex; align-items:center; justify-content:center;
+    margin: 10px 0 4px; touch-action:none;
+  }
+  .center-dot{
+    position:absolute; width:4px; height:4px; border-radius:50%; background: var(--muted); opacity:.6;
+  }
+  .guess-circle{
+    position:absolute; border: 2px solid var(--accent); border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,107,53,0.16), rgba(255,107,53,0.04));
+  }
+  .drag-handle{
+    position:absolute; width: 26px; height: 26px; margin:-13px; border-radius:50%;
+    background: var(--accent); box-shadow: 0 0 0 6px rgba(255,107,53,0.18), 0 4px 14px rgba(0,0,0,0.35);
+    cursor: grab; touch-action:none;
+  }
+  .drag-handle:active{ cursor: grabbing; }
+
+  .guess-readout{ text-align:center; margin: 6px 0 4px; font-family: var(--font-mono); }
+  .guess-readout .num{ font-size: 34px; font-weight:700; color: var(--accent); letter-spacing:-0.02em; }
+  .guess-readout .unit{ font-size: 14px; color: var(--muted); margin-left:4px; }
+  .drag-hint{ text-align:center; font-family:var(--font-mono); font-size:11.5px; color:var(--muted); margin-bottom:6px; }
+
+  /* ---- reveal ---- */
+  .reveal-stage{
+    position:relative; height: 340px; display:flex; align-items:center; justify-content:center;
+    margin: 12px 0 8px;
+  }
+  .reveal-circle{
+    position:absolute; border-radius: 50%;
+  }
+  .reveal-circle.guess{ border: 2px solid var(--cyan); background: rgba(127,219,255,0.06); }
+  .reveal-circle.actual{ border: 2px dashed var(--accent); background: rgba(255,107,53,0.1); }
+  .reveal-legend{ display:flex; justify-content:center; gap:22px; margin: 4px 0 2px; font-family:var(--font-mono); font-size:12px; }
+  .reveal-legend span{ display:flex; align-items:center; gap:6px; }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .dot.guess{ background: var(--cyan); }
+  .dot.actual{ background: var(--accent); }
+
+  .verdict{ text-align:center; margin: 14px 0 4px; }
+  .verdict .phrase{ font-size: 21px; font-weight:700; }
+  .verdict .detail{ font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); margin-top:8px; }
+  .verdict .plus{ font-family: var(--font-mono); font-size: 15px; color: var(--accent); margin-top:10px; }
+
+  /* ---- result ---- */
+  .rank-box{ text-align:center; padding: 6px 0 18px; }
+  .rank-box .eyebrow{ justify-content:center; }
+  .rank-title{ font-size: 25px; font-weight:700; margin: 6px 0 4px; }
+  .rank-avg{ font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  .total-score{ font-family: var(--font-mono); font-size: 46px; font-weight:700; color: var(--accent); text-align:center; margin: 10px 0 6px; }
+  .total-label{ text-align:center; font-family: var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; margin-bottom:20px; }
+
+  .breakdown{ display:grid; gap:8px; margin: 0 0 22px; }
+  .row{ display:flex; align-items:center; gap:10px; font-size:13px; padding: 9px 10px; background: rgba(255,255,255,0.03); border-radius:3px; border:1px solid var(--panel-border); }
+  .row .em{ font-size:16px; }
+  .row .nm{ flex:1; color: var(--ink); }
+  .row .vals{ font-family: var(--font-mono); color: var(--muted); font-size:11.5px; }
+  .row .acc{ font-family: var(--font-mono); font-size:12px; width:42px; text-align:right; }
+
+  .fade-in{ animation: fadeIn .35s ease both; }
+  @keyframes fadeIn{ from{ opacity:0; transform: translateY(6px);} to{ opacity:1; transform:none; } }
+
+  @media (max-width:420px){
+    .card{ padding: 22px 16px; }
+    h1{ font-size:23px; }
+    .guess-readout .num{ font-size:30px; }
+    .circle-stage, .reveal-stage{ height: 300px; }
+  }
+</style>
+</head>
+<body>
+<div class="crop tl"></div><div class="crop tr"></div><div class="crop bl"></div><div class="crop br"></div>
+<div class="stage"><div class="card" id="app"></div></div>
+
+<script>
+const OBJECTS = [
+  { name:"500円玉", icon:"🪙", actual:2.65, category:"coin" },
+  { name:"100円玉", icon:"🪙", actual:2.26, category:"coin" },
+  { name:"50円玉",  icon:"🪙", actual:2.10, category:"coin" },
+  { name:"10円玉",  icon:"🪙", actual:2.35, category:"coin" },
+  { name:"5円玉",   icon:"🪙", actual:2.20, category:"coin" },
+  { name:"1円玉",   icon:"🪙", actual:2.00, category:"coin" },
+  { name:"ペットボトルのキャップ", icon:"🧴", actual:3.0, category:"other" },
+  { name:"コーラ500mlペットボトル", icon:"🥤", actual:6.5, category:"other" },
+  { name:"乾電池（単1形）の直径", icon:"🔋", actual:3.325, range:"32.3〜34.2mm", category:"battery" },
+  { name:"乾電池（単2形）の直径", icon:"🔋", actual:2.555, range:"24.9〜26.2mm", category:"battery" },
+  { name:"乾電池（単3形）の直径", icon:"🔋", actual:1.40,  range:"13.5〜14.5mm", category:"battery" },
+];
+
+let pxPerCm = 96/2.54; // フォールバック値（キャリブレーション未実施時）
+let deck = [];
+let idx = 0;
+let totalScore = 0;
+let results = [];
+let curDiameterPx = 0;
+
+const app = document.getElementById('app');
+const CARD_WIDTH_CM = 8.56; // ISO/IEC 7810 ID-1 規格（クレジットカード等の横幅）
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function fmt(n){ return (Math.round(n*100)/100).toString(); }
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+/* ---------------- START ---------------- */
+function renderStart(){
+  app.innerHTML = `
+    <p class="eyebrow">SIZE SENSE / COIN EDITION</p>
+    <h1>だいたい<br>こんぐらい</h1>
+    <p class="lede">硬貨やキャップなど、身の回りにある小さな円形のものの直径を、画面上で実際の大きさに操作して当てるゲームです。</p>
+    <div class="note"><b>端末ごとの画面サイズ調整について</b><br>スマホ・PCは機種によって画面の解像度が異なるため、まず最初にお手元のカード（クレジットカード等）を使って画面を実寸に合わせるキャリブレーションを行います。</div>
+    <ul class="spec-list">
+      <li><span class="spec-num">01</span><b>調整</b> — カードで画面サイズをキャリブレーション</li>
+      <li><span class="spec-num">02</span><b>出題</b> — 硬貨3問・乾電池1問・その他1問の全${ROUNDS}問</li>
+      <li><span class="spec-num">03</span><b>操作</b> — 円をドラッグして直径を予測</li>
+    </ul>
+    <button class="btn" id="startBtn">キャリブレーションへ</button>
+  `;
+  document.getElementById('startBtn').onclick = renderCalibration;
+}
+
+/* ---------------- CALIBRATION ---------------- */
+function renderCalibration(){
+  app.innerHTML = `
+    <div class="fade-in">
+      <p class="eyebrow">STEP 1 / CALIBRATION</p>
+      <h1 style="font-size:22px;">カードを縦向きで画面に当ててください</h1>
+      <p class="lede">スマホでの操作を想定し、横幅ではなく縦方向で合わせます。クレジットカード・キャッシュカード・交通系ICカードなど（長辺は世界共通で ${CARD_WIDTH_CM}cm）を画面に縦向きに当て、下の●を上下にドラッグして枠の長さをカードの長辺にぴったり合わせてください。</p>
+      <div class="calib-stage" id="calibStage">
+        <div class="calib-rect" id="calibRect">
+          <div class="calib-handle" id="calibHandle"></div>
+        </div>
+      </div>
+      <div class="calib-readout">カードの縁に合わせたら「決定」を押してください</div>
+      <div class="btn-row">
+        <button class="btn ghost small" id="skipBtn">カードが無いのでスキップ</button>
+        <button class="btn" id="calibDoneBtn">この幅で決定</button>
+      </div>
+    </div>
+  `;
+
+  const stage = document.getElementById('calibStage');
+  const rect = document.getElementById('calibRect');
+  const handle = document.getElementById('calibHandle');
+  const aspect = 53.98/85.60; // 幅/長さ
+  let height = 300;
+
+  function apply(){
+    height = clamp(height, 120, 370);
+    const width = height*aspect;
+    rect.style.height = height+'px';
+    rect.style.width = width+'px';
+    handle.style.top = height+'px';
+  }
+  apply();
+
+  let dragging=false, startY=0, startH=0;
+  function pointerDown(e){
+    dragging=true; startY = (e.touches? e.touches[0].clientY : e.clientY); startH = height;
+    e.preventDefault();
+  }
+  function pointerMove(e){
+    if(!dragging) return;
+    const y = (e.touches? e.touches[0].clientY : e.clientY);
+    height = startH + (y-startY);
+    apply();
+    e.preventDefault();
+  }
+  function pointerUp(){ dragging=false; }
+
+  handle.addEventListener('mousedown', pointerDown);
+  window.addEventListener('mousemove', pointerMove);
+  window.addEventListener('mouseup', pointerUp);
+  handle.addEventListener('touchstart', pointerDown, {passive:false});
+  window.addEventListener('touchmove', pointerMove, {passive:false});
+  window.addEventListener('touchend', pointerUp);
+
+  document.getElementById('calibDoneBtn').onclick = () => {
+    pxPerCm = height / CARD_WIDTH_CM;
+    startGame();
+  };
+  document.getElementById('skipBtn').onclick = () => {
+    pxPerCm = 96/2.54; // 標準CSSピクセル基準の推定値（精度は下がります）
+    startGame();
+  };
+}
+
+/* ---------------- GAME ---------------- */
+const ROUNDS = 5;
+function startGame(){
+  const batteries = shuffle(OBJECTS.filter(o=>o.category==="battery")).slice(0,1);
+  const coins = shuffle(OBJECTS.filter(o=>o.category==="coin")).slice(0,3);
+  const others = shuffle(OBJECTS.filter(o=>o.category==="other")).slice(0,1);
+  deck = shuffle([...batteries, ...coins, ...others]);
+  idx = 0; totalScore = 0; results = [];
+  renderRound();
+}
+
+function renderRound(){
+  const obj = deck[idx];
+  const minCm = 0.5, maxCm = 7.5;
+  curDiameterPx = 2.2 * pxPerCm; // 初期サイズ
+
+  app.innerHTML = `
+    <div class="fade-in">
+      <div class="top-row">
+        <span class="round-tag">ROUND ${idx+1} / ${deck.length}</span>
+        <span class="score-tag">SCORE <b>${totalScore.toLocaleString()}</b></span>
+      </div>
+      <div class="object-zone">
+        <div class="object-name">${obj.icon} ${obj.name}</div>
+        <div class="object-q">この円の直径は何cm？ ドラッグして合わせてください</div>
+      </div>
+      <div class="guess-readout"><span class="num" id="guessNum">${fmt(curDiameterPx/pxPerCm)}</span><span class="unit">cm</span></div>
+      <div class="circle-stage" id="circleStage">
+        <div class="center-dot"></div>
+        <div class="guess-circle" id="guessCircle"></div>
+        <div class="drag-handle" id="dragHandle"></div>
+      </div>
+      <div class="drag-hint">● をドラッグ（タッチ）して大きさを調整</div>
+      <button class="btn" id="decideBtn" style="margin-top:18px;">この大きさで決定</button>
+    </div>
+  `;
+
+  const stage = document.getElementById('circleStage');
+  const circle = document.getElementById('guessCircle');
+  const handle = document.getElementById('dragHandle');
+  const guessNum = document.getElementById('guessNum');
+
+  function apply(){
+    const minPx = minCm*pxPerCm, maxPx = maxCm*pxPerCm;
+    curDiameterPx = clamp(curDiameterPx, minPx, maxPx);
+    circle.style.width = curDiameterPx+'px';
+    circle.style.height = curDiameterPx+'px';
+    const r = curDiameterPx/2;
+    handle.style.left = 'calc(50% + '+(r*0.707)+'px)';
+    handle.style.top = 'calc(50% + '+(r*0.707)+'px)';
+    guessNum.textContent = fmt(curDiameterPx/pxPerCm);
+  }
+  apply();
+
+  let dragging=false;
+  function centerPoint(){
+    const r = stage.getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  }
+  function pointerDown(e){ dragging=true; e.preventDefault(); }
+  function pointerMove(e){
+    if(!dragging) return;
+    const p = e.touches? e.touches[0] : e;
+    const c = centerPoint();
+    const dx = p.clientX - c.x, dy = p.clientY - c.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    curDiameterPx = dist*2;
+    apply();
+    e.preventDefault();
+  }
+  function pointerUp(){ dragging=false; }
+
+  handle.addEventListener('mousedown', pointerDown);
+  window.addEventListener('mousemove', pointerMove);
+  window.addEventListener('mouseup', pointerUp);
+  handle.addEventListener('touchstart', pointerDown, {passive:false});
+  window.addEventListener('touchmove', pointerMove, {passive:false});
+  window.addEventListener('touchend', pointerUp);
+
+  document.getElementById('decideBtn').onclick = () => {
+    window.removeEventListener('mousemove', pointerMove);
+    window.removeEventListener('mouseup', pointerUp);
+    window.removeEventListener('touchmove', pointerMove);
+    window.removeEventListener('touchend', pointerUp);
+    renderReveal(obj);
+  };
+}
+
+function verdictFor(accuracy){
+  if(accuracy >= 0.95) return { phrase:"神業！🎯", color:"var(--accent)" };
+  if(accuracy >= 0.85) return { phrase:"さすが！", color:"var(--accent)" };
+  if(accuracy >= 0.70) return { phrase:"ナイス！", color:"var(--cyan)" };
+  if(accuracy >= 0.50) return { phrase:"おしい！", color:"var(--ink)" };
+  return { phrase:"むむむ…", color:"var(--muted)" };
+}
+
+function renderReveal(obj){
+  const guessCm = curDiameterPx/pxPerCm;
+  const errRatio = Math.abs(guessCm - obj.actual)/obj.actual;
+  const accuracy = Math.max(0, 1-errRatio);
+  const score = Math.round(accuracy*1000);
+  totalScore += score;
+  results.push({ name:obj.name, icon:obj.icon, guess:guessCm, actual:obj.actual, accuracy, score });
+
+  const v = verdictFor(accuracy);
+  const guessPx = guessCm*pxPerCm;
+  const actualPx = obj.actual*pxPerCm;
+
+  app.innerHTML = `
+    <div class="fade-in">
+      <div class="top-row">
+        <span class="round-tag">ROUND ${idx+1} / ${deck.length}</span>
+        <span class="score-tag">SCORE <b>${totalScore.toLocaleString()}</b></span>
+      </div>
+      <div class="object-zone"><div class="object-name">${obj.icon} ${obj.name}</div></div>
+      <div class="reveal-stage">
+        <div class="reveal-circle guess" id="rGuess" style="width:0;height:0;"></div>
+        <div class="reveal-circle actual" id="rActual" style="width:0;height:0;"></div>
+      </div>
+      <div class="reveal-legend">
+        <span><i class="dot guess"></i>あなた ${fmt(guessCm)}cm</span>
+        <span><i class="dot actual"></i>実寸目安 ${fmt(obj.actual)}cm</span>
+      </div>
+      ${obj.range ? `<div class="object-q" style="text-align:center;margin:2px 0 0;">※メーカーにより ${obj.range} 程度の幅があります</div>` : ''}
+      <div class="verdict">
+        <div class="phrase" style="color:${v.color}">${v.phrase}</div>
+        <div class="detail">誤差 ${fmt(Math.abs(guessCm-obj.actual))}cm ／ 精度 ${Math.round(accuracy*100)}%</div>
+        <div class="plus">+ ${score} pt</div>
+      </div>
+      <button class="btn" id="nextBtn" style="margin-top:20px;">${idx+1 < deck.length ? '次の問題へ' : '結果を見る'}</button>
+    </div>
+  `;
+
+  requestAnimationFrame(()=>{
+    const g = document.getElementById('rGuess');
+    const a = document.getElementById('rActual');
+    g.style.width = guessPx+'px'; g.style.height = guessPx+'px';
+    a.style.width = actualPx+'px'; a.style.height = actualPx+'px';
+  });
+
+  document.getElementById('nextBtn').onclick = () => {
+    idx++;
+    if(idx < deck.length) renderRound(); else renderResult();
+  };
+}
+
+function rankFor(avg){
+  if(avg >= 0.90) return "定規の申し子";
+  if(avg >= 0.75) return "測量士見習い";
+  if(avg >= 0.55) return "日常観察者";
+  return "感覚、まだ育成中";
+}
+
+function accColor(acc){ if(acc>=0.85) return '#FF6B35'; if(acc>=0.6) return '#7FDBFF'; return '#7E97AE'; }
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function drawCrop(ctx,x,y){
+  ctx.save();
+  ctx.strokeStyle='#7FDBFF'; ctx.lineWidth=2; ctx.globalAlpha=0.5;
+  ctx.beginPath(); ctx.moveTo(x-14,y); ctx.lineTo(x+14,y); ctx.moveTo(x,y-14); ctx.lineTo(x,y+14); ctx.stroke();
+  ctx.restore();
+}
+
+function buildResultCanvas(totalScore, rank, avg, results, deck){
+  const W = 1080, H = 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#0F2942'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+  for(let x=0;x<=W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0;y<=H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  [[44,44],[W-44,44],[44,H-44],[W-44,H-44]].forEach(p=>drawCrop(ctx,p[0],p[1]));
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#7FDBFF';
+  ctx.font = '600 26px "Space Grotesk"';
+  ctx.fillText('◆ SIZE SENSE RESULT', 72, 118);
+
+  ctx.fillStyle = '#F3F6FA';
+  ctx.font = '700 60px "Space Grotesk"';
+  ctx.fillText('だいたいこんぐらい', 72, 200);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FF6B35';
+  ctx.font = '700 150px "JetBrains Mono"';
+  ctx.fillText(totalScore.toLocaleString(), W/2, 420);
+
+  ctx.fillStyle = '#7E97AE';
+  ctx.font = '500 24px "JetBrains Mono"';
+  ctx.fillText(`TOTAL SCORE / ${(deck.length*1000).toLocaleString()}`, W/2, 458);
+
+  ctx.fillStyle = '#F3F6FA';
+  ctx.font = '700 44px "Space Grotesk"';
+  ctx.fillText(rank, W/2, 528);
+
+  ctx.fillStyle = '#7E97AE';
+  ctx.font = '500 24px "JetBrains Mono"';
+  ctx.fillText(`平均精度 ${Math.round(avg*100)}%`, W/2, 566);
+
+  let y = 660;
+  results.forEach(r=>{
+    ctx.fillStyle = 'rgba(255,255,255,0.045)';
+    roundRect(ctx,72,y-42,W-144,80,8); ctx.fill();
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#F3F6FA';
+    ctx.font = '500 28px "Space Grotesk"';
+    ctx.fillText(`${r.icon} ${r.name}`, 100, y+8);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#7E97AE';
+    ctx.font = '500 24px "JetBrains Mono"';
+    ctx.fillText(`${fmt(r.guess)} / ${fmt(r.actual)}cm`, 800, y+8);
+
+    ctx.fillStyle = accColor(r.accuracy);
+    ctx.font = '700 28px "JetBrains Mono"';
+    ctx.fillText(`${Math.round(r.accuracy*100)}%`, 970, y+8);
+
+    y += 96;
+  });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#7E97AE';
+  ctx.font = '500 22px "JetBrains Mono"';
+  ctx.fillText('身の回りのもののサイズを感覚だけで当てるゲーム', W/2, H-52);
+
+  return canvas;
+}
+
+function renderResult(){
+  const avg = results.reduce((s,r)=>s+r.accuracy,0)/results.length;
+  const rank = rankFor(avg);
+  const rows = results.map(r => `
+    <div class="row">
+      <span class="em">${r.icon}</span>
+      <span class="nm">${r.name}</span>
+      <span class="vals">${fmt(r.guess)} / ${fmt(r.actual)}cm</span>
+      <span class="acc">${Math.round(r.accuracy*100)}%</span>
+    </div>
+  `).join('');
+
+  app.innerHTML = `
+    <div class="fade-in">
+      <div class="rank-box">
+        <p class="eyebrow">RESULT</p>
+        <div class="total-score">${totalScore.toLocaleString()}</div>
+        <div class="total-label">TOTAL SCORE / ${(deck.length*1000).toLocaleString()}</div>
+        <div class="rank-title">${rank}</div>
+        <div class="rank-avg">平均精度 ${Math.round(avg*100)}%</div>
+      </div>
+      <div class="breakdown">${rows}</div>
+      <button class="btn xshare" id="shareXBtn">𝕏 画像つきで結果をポストする</button>
+      <div class="btn-row">
+        <button class="btn ghost" id="recalibBtn">再キャリブレーション</button>
+        <button class="btn" id="retryBtn">もう一度</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('retryBtn').onclick = startGame;
+  document.getElementById('recalibBtn').onclick = renderCalibration;
+
+  document.getElementById('shareXBtn').onclick = async () => {
+    const btn = document.getElementById('shareXBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '画像を作成中…';
+
+    const shareText = `「だいたいこんぐらい」で ${totalScore}点／${(deck.length*1000)}点（平均精度${Math.round(avg*100)}%）\n称号：${rank}\n\n身の回りのもののサイズを感覚だけで当てるゲーム`;
+
+    try{
+      if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+      const canvas = buildResultCanvas(totalScore, rank, avg, results, deck);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const file = new File([blob], 'daitai-kongurai-result.png', { type:'image/png' });
+
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        await navigator.share({ files:[file], text: shareText });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'daitai-kongurai-result.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+        window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText), '_blank', 'noopener,noreferrer');
+        alert('結果画像を保存しました。Xの投稿画面が開くので、保存した画像を添付してください。');
+      }
+    }catch(err){
+      if(err && err.name !== 'AbortError'){ console.error(err); }
+    }finally{
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  };
+}
+
+renderStart();
+</script>
+</body>
+</html>
