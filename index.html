@@ -98,25 +98,49 @@
   .object-q{ font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
 
   /* ---- calibration ---- */
-  .calib-stage{
-    position:relative; height: 380px; display:flex; align-items:flex-start; justify-content:center;
-    margin: 6px 0 8px; touch-action:none; padding-top: 6px;
+  .calib-outer{
+    display:flex; flex-direction:column; align-items:center;
+    margin: 18px 0 46px; min-height: 80px;
   }
-  .calib-rect{
-    position:relative; border: 2px solid var(--cyan); border-radius: 6px;
-    background: rgba(127,219,255,0.08);
+  .calib-top-marker{
+    font-family: var(--font-mono); font-size: 11px; color: var(--cyan); opacity:.85;
+    margin-bottom: 6px; letter-spacing:.04em;
   }
-  .calib-rect::before{
-    content:"CARD"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(90deg);
-    font-family: var(--font-mono); font-size:10px; letter-spacing:.14em; color: var(--cyan); opacity:.55;
+  .calib-card{
+    position:relative;
+    width: 168px;
+    min-height: 90px;
+    border-radius: 15px;
+    border: 1.5px solid rgba(127,219,255,0.55);
+    background: linear-gradient(145deg, rgba(127,219,255,0.16), rgba(127,219,255,0.03));
+    box-shadow: 0 14px 32px rgba(0,0,0,0.32), inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  .calib-stripe{
+    position:absolute; top:20px; left:0; right:0; height:15px;
+    background: rgba(255,255,255,0.16);
+  }
+  .calib-chip{
+    position:absolute; top:48px; left:16px; width:26px; height:19px; border-radius:4px;
+    background: linear-gradient(135deg, rgba(255,107,53,0.6), rgba(255,107,53,0.28));
+    border: 1px solid rgba(255,107,53,0.65);
+  }
+  .calib-dots{ position:absolute; left:16px; bottom:16px; display:flex; gap:5px; }
+  .calib-dots span{ width:5px; height:5px; border-radius:50%; background: rgba(255,255,255,0.28); }
+  .calib-card-label{
+    position:absolute; right:14px; bottom:13px; font-family: var(--font-mono); font-size:10px;
+    letter-spacing:.12em; color: var(--cyan); opacity:.6;
   }
   .calib-handle{
-    position:absolute; left:50%; width: 34px; height: 34px; margin-top:-17px; margin-left:-17px;
-    border-radius:50%; background: var(--cyan); box-shadow: 0 0 0 6px rgba(127,219,255,0.18), 0 4px 14px rgba(0,0,0,0.35);
+    position:absolute; left:50%; bottom:-19px; transform:translateX(-50%);
+    width: 38px; height: 38px; border-radius:50%; background: var(--cyan);
+    box-shadow: 0 0 0 6px rgba(127,219,255,0.18), 0 4px 14px rgba(0,0,0,0.35);
     cursor: ns-resize; touch-action:none; display:flex; align-items:center; justify-content:center;
   }
-  .calib-handle::after{ content:"↕"; font-size:15px; color:#0A1F33; font-weight:700; }
-  .calib-readout{ text-align:center; font-family:var(--font-mono); font-size:12px; color:var(--muted); margin: 4px 0 4px; }
+  .calib-handle::after{ content:"↕"; font-size:16px; color:#0A1F33; font-weight:700; }
+  .calib-bottom-marker{
+    font-family: var(--font-mono); font-size: 11px; color: var(--accent); opacity:.9;
+    margin-top: 30px; letter-spacing:.04em;
+  }
 
   /* ---- guessing circle ---- */
   .circle-stage{
@@ -201,7 +225,7 @@ const OBJECTS = [
   { name:"10円玉",  icon:"🪙", actual:2.35, category:"coin" },
   { name:"5円玉",   icon:"🪙", actual:2.20, category:"coin" },
   { name:"1円玉",   icon:"🪙", actual:2.00, category:"coin" },
-  { name:"ペットボトルのキャップ", icon:"🧴", actual:3.0, category:"other" },
+  { name:"ペットボトルのキャップ", icon:"🧴", actual:2.8, category:"other" },
   { name:"コーラ500mlペットボトル", icon:"🥤", actual:6.5, category:"other" },
   { name:"乾電池（単1形）の直径", icon:"🔋", actual:3.325, range:"32.3〜34.2mm", category:"battery" },
   { name:"乾電池（単2形）の直径", icon:"🔋", actual:2.555, range:"24.9〜26.2mm", category:"battery" },
@@ -229,7 +253,7 @@ function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 /* ---------------- START ---------------- */
 function renderStart(){
   app.innerHTML = `
-    <p class="eyebrow">SIZE SENSE / COIN EDITION</p>
+    <p class="eyebrow">SIZE SENSE / DAITAI KONGURAI</p>
     <h1>だいたい<br>こんぐらい</h1>
     <p class="lede">硬貨やキャップなど、身の回りにある小さな円形のものの直径を、画面上で実際の大きさに操作して当てるゲームです。</p>
     <div class="note"><b>端末ごとの画面サイズ調整について</b><br>スマホ・PCは機種によって画面の解像度が異なるため、まず最初にお手元のカード（クレジットカード等）を使って画面を実寸に合わせるキャリブレーションを行います。</div>
@@ -248,33 +272,33 @@ function renderCalibration(){
   app.innerHTML = `
     <div class="fade-in">
       <p class="eyebrow">STEP 1 / CALIBRATION</p>
-      <h1 style="font-size:22px;">カードを縦向きで画面に当ててください</h1>
-      <p class="lede">スマホでの操作を想定し、横幅ではなく縦方向で合わせます。クレジットカード・キャッシュカード・交通系ICカードなど（長辺は世界共通で ${CARD_WIDTH_CM}cm）を画面に縦向きに当て、下の●を上下にドラッグして枠の長さをカードの長辺にぴったり合わせてください。</p>
-      <div class="calib-stage" id="calibStage">
-        <div class="calib-rect" id="calibRect">
+      <h1 style="font-size:22px;">カードの長辺に合わせてください</h1>
+      <p class="lede">クレジットカード・キャッシュカード・交通系ICカードなど（長辺は世界共通で ${CARD_WIDTH_CM}cm）を画面の縦方向に当て、下の●を上下にドラッグしてカードの下端にぴったり合わせてください。</p>
+      <div class="calib-outer" id="calibOuter">
+        <div class="calib-top-marker">▲ カードの上端をここに</div>
+        <div class="calib-card" id="calibCard">
+          <div class="calib-stripe"></div>
+          <div class="calib-chip"></div>
+          <div class="calib-dots"><span></span><span></span><span></span><span></span></div>
+          <div class="calib-card-label">CARD</div>
           <div class="calib-handle" id="calibHandle"></div>
         </div>
+        <div class="calib-bottom-marker">▼ カードの下端をここに合わせる</div>
       </div>
-      <div class="calib-readout">カードの縁に合わせたら「決定」を押してください</div>
       <div class="btn-row">
         <button class="btn ghost small" id="skipBtn">カードが無いのでスキップ</button>
-        <button class="btn" id="calibDoneBtn">この幅で決定</button>
+        <button class="btn" id="calibDoneBtn">この長さで決定</button>
       </div>
     </div>
   `;
 
-  const stage = document.getElementById('calibStage');
-  const rect = document.getElementById('calibRect');
+  const card = document.getElementById('calibCard');
   const handle = document.getElementById('calibHandle');
-  const aspect = 53.98/85.60; // 幅/長さ
   let height = 300;
 
   function apply(){
-    height = clamp(height, 120, 370);
-    const width = height*aspect;
-    rect.style.height = height+'px';
-    rect.style.width = width+'px';
-    handle.style.top = height+'px';
+    height = clamp(height, 90, 700);
+    card.style.height = height+'px';
   }
   apply();
 
