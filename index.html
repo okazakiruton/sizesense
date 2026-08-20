@@ -301,21 +301,52 @@ function shuffle(arr){
 function fmt(n){ return (Math.round(n*100)/100).toString(); }
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
+/* ---------------- 端末のキャリブレーション保存 ---------------- */
+const CALIB_KEY = 'sizesense_calibration_v1';
+
+function loadCalibration(){
+  try{
+    const raw = localStorage.getItem(CALIB_KEY);
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    if(data && typeof data.pxPerCm === 'number' && data.pxPerCm > 0) return data;
+  }catch(e){ /* localStorageが使えない環境（プライベートモード等）は無視して毎回キャリブレーションする */ }
+  return null;
+}
+function saveCalibration(px, method){
+  try{
+    localStorage.setItem(CALIB_KEY, JSON.stringify({ pxPerCm: px, method, savedAt: Date.now() }));
+  }catch(e){ /* 保存できなくてもゲーム自体は続行できるので握りつぶす */ }
+}
+
 /* ---------------- START ---------------- */
 function renderStart(){
+  const saved = loadCalibration();
+
   app.innerHTML = `
     <p class="eyebrow">SIZE SENSE / DAITAI KONGURAI</p>
     <h1>だいたい<br>こんぐらい</h1>
     <p class="lede">硬貨やキャップなど、身の回りにある小さな円形のものの直径を、画面上で実際の大きさに操作して当てるゲームです。</p>
-    <div class="note"><b>端末ごとの画面サイズ調整について</b><br>スマホ・PCは機種によって画面の解像度が異なるため、まず最初にお手元のカード（クレジットカード等）を使って画面を実寸に合わせるキャリブレーションを行います。</div>
+    ${saved
+      ? `<div class="note"><b>この端末のキャリブレーション設定が保存されています</b><br>${saved.method === 'card' ? 'カードを使って合わせた設定' : '簡易設定（スキップ時のもの）'}をそのまま使えます。端末や表示倍率を変えた場合は「やり直す」を選んでください。</div>`
+      : `<div class="note"><b>端末ごとの画面サイズ調整について</b><br>スマホ・PCは機種によって画面の解像度が異なるため、まず最初にお手元のカード（クレジットカード等）を使って画面を実寸に合わせるキャリブレーションを行います。一度合わせるとこの端末に保存され、次回からは不要になります。</div>`}
     <ul class="spec-list">
       <li><span class="spec-num">01</span><b>調整</b> — カードで画面サイズをキャリブレーション</li>
       <li><span class="spec-num">02</span><b>出題</b> — 硬貨3問・乾電池1問・その他1問の全${ROUNDS}問</li>
       <li><span class="spec-num">03</span><b>操作</b> — 円をドラッグして直径を予測</li>
     </ul>
-    <button class="btn" id="startBtn">キャリブレーションへ</button>
+    ${saved
+      ? `<button class="btn" id="startBtn">この設定で始める</button>
+         <button class="btn ghost small" id="recalibFromStartBtn" style="margin-top:10px;">キャリブレーションをやり直す</button>`
+      : `<button class="btn" id="startBtn">キャリブレーションへ</button>`}
   `;
-  document.getElementById('startBtn').onclick = renderCalibration;
+
+  if(saved){
+    document.getElementById('startBtn').onclick = () => { pxPerCm = saved.pxPerCm; startGame(); };
+    document.getElementById('recalibFromStartBtn').onclick = renderCalibration;
+  } else {
+    document.getElementById('startBtn').onclick = renderCalibration;
+  }
 }
 
 /* ---------------- CALIBRATION ---------------- */
@@ -376,10 +407,12 @@ function renderCalibration(){
 
   document.getElementById('calibDoneBtn').onclick = () => {
     pxPerCm = height / CARD_WIDTH_CM;
+    saveCalibration(pxPerCm, 'card');
     startGame();
   };
   document.getElementById('skipBtn').onclick = () => {
     pxPerCm = 96/2.54; // 標準CSSピクセル基準の推定値（精度は下がります）
+    saveCalibration(pxPerCm, 'skip');
     startGame();
   };
 }
