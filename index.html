@@ -207,12 +207,44 @@
   .verdict .plus{ font-family: var(--font-mono); font-size: 15px; color: var(--accent); margin-top:10px; }
 
   /* ---- result ---- */
-  .rank-box{ text-align:center; padding: 6px 0 18px; }
+  .rank-box{ text-align:center; padding: 6px 0 18px; position:relative; }
   .rank-box .eyebrow{ justify-content:center; }
   .rank-title{ font-size: 25px; font-weight:700; margin: 6px 0 4px; }
   .rank-avg{ font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
   .total-score{ font-family: var(--font-mono); font-size: 46px; font-weight:700; color: var(--accent); text-align:center; margin: 10px 0 6px; }
   .total-label{ text-align:center; font-family: var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; margin-bottom:20px; }
+
+  /* ---- legendary rank (測量神) ---- */
+  .rank-box.legend{ padding: 22px 14px 26px; margin-bottom: 4px; }
+  .rank-box.legend::before{
+    content:""; position:absolute; inset: -4px 6px; border-radius: 10px;
+    border: 1px solid rgba(255,215,0,0.4); pointer-events:none;
+    animation: legendPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes legendPulse{
+    0%,100%{ box-shadow: 0 0 22px rgba(255,215,0,0.18), inset 0 0 16px rgba(255,215,0,0.05); }
+    50%{ box-shadow: 0 0 44px rgba(255,215,0,0.42), inset 0 0 26px rgba(255,215,0,0.14); }
+  }
+  .legend-badge{
+    font-family: var(--font-mono); font-size: 11px; letter-spacing:.2em; color:#FFD700;
+    margin: 2px 0 8px; display:flex; align-items:center; justify-content:center; gap:8px;
+    animation: legendFade 2.4s ease-in-out infinite;
+  }
+  @keyframes legendFade{ 0%,100%{ opacity:.6; } 50%{ opacity:1; } }
+  .rank-title.legend{
+    font-size: 32px;
+    background: linear-gradient(90deg, #FFD700, #FFF4C2, #FF8A3D, #FFD700);
+    background-size: 300% auto;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 2.6s linear infinite;
+    text-shadow: 0 0 24px rgba(255,215,0,0.35);
+  }
+  @keyframes shimmer{ 0%{ background-position: 0% center; } 100%{ background-position: 300% center; } }
+  .sparkle{
+    position:absolute; color:#FFD700; font-size:16px; opacity:0; pointer-events:none;
+    animation: twinkle 2.6s ease-in-out infinite;
+  }
+  @keyframes twinkle{ 0%,100%{ opacity:0; transform:scale(.6); } 50%{ opacity:1; transform:scale(1); } }
 
   .breakdown{ display:grid; gap:8px; margin: 0 0 22px; }
   .row{ display:flex; align-items:center; gap:10px; font-size:13px; padding: 9px 10px; background: rgba(255,255,255,0.03); border-radius:3px; border:1px solid var(--panel-border); }
@@ -499,102 +531,17 @@ function renderReveal(obj){
 }
 
 function rankFor(avg){
+  if(avg >= 0.97) return "測量神";
   if(avg >= 0.90) return "定規の申し子";
   if(avg >= 0.75) return "測量士見習い";
   if(avg >= 0.55) return "日常観察者";
   return "感覚、まだ育成中";
 }
 
-function accColor(acc){ if(acc>=0.85) return '#FF6B35'; if(acc>=0.6) return '#7FDBFF'; return '#7E97AE'; }
-
-function roundRect(ctx,x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.arcTo(x+w,y,x+w,y+h,r);
-  ctx.arcTo(x+w,y+h,x,y+h,r);
-  ctx.arcTo(x,y+h,x,y,r);
-  ctx.arcTo(x,y,x+w,y,r);
-  ctx.closePath();
-}
-
-function drawCrop(ctx,x,y){
-  ctx.save();
-  ctx.strokeStyle='#7FDBFF'; ctx.lineWidth=2; ctx.globalAlpha=0.5;
-  ctx.beginPath(); ctx.moveTo(x-14,y); ctx.lineTo(x+14,y); ctx.moveTo(x,y-14); ctx.lineTo(x,y+14); ctx.stroke();
-  ctx.restore();
-}
-
-function buildResultCanvas(totalScore, rank, avg, results, deck){
-  const W = 1080, H = 1080;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#0F2942'; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
-  for(let x=0;x<=W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for(let y=0;y<=H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  [[44,44],[W-44,44],[44,H-44],[W-44,H-44]].forEach(p=>drawCrop(ctx,p[0],p[1]));
-
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#7FDBFF';
-  ctx.font = '600 26px "Space Grotesk"';
-  ctx.fillText('◆ SIZE SENSE RESULT', 72, 118);
-
-  ctx.fillStyle = '#F3F6FA';
-  ctx.font = '700 60px "Space Grotesk"';
-  ctx.fillText('だいたいこんぐらい', 72, 200);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FF6B35';
-  ctx.font = '700 150px "JetBrains Mono"';
-  ctx.fillText(totalScore.toLocaleString(), W/2, 420);
-
-  ctx.fillStyle = '#7E97AE';
-  ctx.font = '500 24px "JetBrains Mono"';
-  ctx.fillText(`TOTAL SCORE / ${(deck.length*1000).toLocaleString()}`, W/2, 458);
-
-  ctx.fillStyle = '#F3F6FA';
-  ctx.font = '700 44px "Space Grotesk"';
-  ctx.fillText(rank, W/2, 528);
-
-  ctx.fillStyle = '#7E97AE';
-  ctx.font = '500 24px "JetBrains Mono"';
-  ctx.fillText(`平均精度 ${Math.round(avg*100)}%`, W/2, 566);
-
-  let y = 660;
-  results.forEach(r=>{
-    ctx.fillStyle = 'rgba(255,255,255,0.045)';
-    roundRect(ctx,72,y-42,W-144,80,8); ctx.fill();
-
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#F3F6FA';
-    ctx.font = '500 28px "Space Grotesk"';
-    ctx.fillText(`${r.icon} ${r.name}`, 100, y+8);
-
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#7E97AE';
-    ctx.font = '500 24px "JetBrains Mono"';
-    ctx.fillText(`${fmt(r.guess)} / ${fmt(r.actual)}cm`, 800, y+8);
-
-    ctx.fillStyle = accColor(r.accuracy);
-    ctx.font = '700 28px "JetBrains Mono"';
-    ctx.fillText(`${Math.round(r.accuracy*100)}%`, 970, y+8);
-
-    y += 96;
-  });
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#7E97AE';
-  ctx.font = '500 22px "JetBrains Mono"';
-  ctx.fillText('身の回りのもののサイズを感覚だけで当てるゲーム', W/2, H-52);
-
-  return canvas;
-}
-
 function renderResult(){
   const avg = results.reduce((s,r)=>s+r.accuracy,0)/results.length;
   const rank = rankFor(avg);
+  const isLegend = rank === "測量神";
   const rows = results.map(r => `
     <div class="row">
       <span class="em">${r.icon}</span>
@@ -604,17 +551,26 @@ function renderResult(){
     </div>
   `).join('');
 
+  const sparkles = isLegend ? `
+    <span class="sparkle" style="top:6px; left:14%; animation-delay:0s;">✦</span>
+    <span class="sparkle" style="top:20px; right:12%; animation-delay:.5s;">✧</span>
+    <span class="sparkle" style="bottom:10px; left:22%; animation-delay:1.1s;">✦</span>
+    <span class="sparkle" style="bottom:0px; right:20%; animation-delay:1.6s;">✧</span>
+  ` : '';
+
   app.innerHTML = `
     <div class="fade-in">
-      <div class="rank-box">
+      <div class="rank-box${isLegend ? ' legend' : ''}">
+        ${sparkles}
         <p class="eyebrow">RESULT</p>
         <div class="total-score">${totalScore.toLocaleString()}</div>
         <div class="total-label">TOTAL SCORE / ${(deck.length*1000).toLocaleString()}</div>
-        <div class="rank-title">${rank}</div>
+        ${isLegend ? `<div class="legend-badge">★ LEGENDARY RANK ★</div>` : ''}
+        <div class="rank-title${isLegend ? ' legend' : ''}">${isLegend ? '👑 ' : ''}${rank}</div>
         <div class="rank-avg">平均精度 ${Math.round(avg*100)}%</div>
       </div>
       <div class="breakdown">${rows}</div>
-      <button class="btn xshare" id="shareXBtn">𝕏 画像つきで結果をポストする</button>
+      <button class="btn xshare" id="shareXBtn">𝕏 で結果をポストする</button>
       <div class="btn-row">
         <button class="btn ghost" id="recalibBtn">再キャリブレーション</button>
         <button class="btn" id="retryBtn">もう一度</button>
@@ -624,37 +580,9 @@ function renderResult(){
   document.getElementById('retryBtn').onclick = startGame;
   document.getElementById('recalibBtn').onclick = renderCalibration;
 
-  document.getElementById('shareXBtn').onclick = async () => {
-    const btn = document.getElementById('shareXBtn');
-    const original = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '画像を作成中…';
-
+  document.getElementById('shareXBtn').onclick = () => {
     const shareText = `「だいたいこんぐらい」で ${totalScore}点／${(deck.length*1000)}点（平均精度${Math.round(avg*100)}%）\n称号：${rank}\n\n身の回りのもののサイズを感覚だけで当てるゲーム\nhttps://okazakiruton.github.io/sizesense/`;
-
-    try{
-      if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
-      const canvas = buildResultCanvas(totalScore, rank, avg, results, deck);
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      const file = new File([blob], 'daitai-kongurai-result.png', { type:'image/png' });
-
-      if(navigator.canShare && navigator.canShare({ files:[file] })){
-        await navigator.share({ files:[file], text: shareText });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'daitai-kongurai-result.png';
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(()=>URL.revokeObjectURL(url), 4000);
-        window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText), '_blank', 'noopener,noreferrer');
-        alert('結果画像を保存しました。Xの投稿画面が開くので、保存した画像を添付してください。');
-      }
-    }catch(err){
-      if(err && err.name !== 'AbortError'){ console.error(err); }
-    }finally{
-      btn.disabled = false;
-      btn.textContent = original;
-    }
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText), '_blank', 'noopener,noreferrer');
   };
 }
 
